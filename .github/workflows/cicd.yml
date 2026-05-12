@@ -1,0 +1,68 @@
+name: SageMaker CICD PoC
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Linting Tools
+        run: pip install ruff
+      - name: Lint with ruff
+        run: ruff check .
+
+  build-push:
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker Image (Simulated)
+        run: |
+          echo "Building image for processing..."
+          docker build -t sagemaker-processing-poc:latest -f docker/Dockerfile.processing .
+          echo "Building image for training..."
+          docker build -t sagemaker-training-poc:latest -f docker/Dockerfile.training .
+      - name: Push to ECR (Simulated)
+        run: |
+          echo "Pushing images to ECR (Local/Ministack simulation)..."
+          # In a real scenario: aws ecr get-login-password | docker login ...
+
+  upload-s3:
+    needs: build-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Dependencies
+        run: pip install boto3
+      - name: Upload code to S3 (Local simulation)
+        run: |
+          # Note: In GHA this would need endpoint-url for ministack if running in a containerized environment
+          python scripts/deploy_s3.py --config model-poc/config.json --root model-poc
+
+  deploy-pipeline:
+    needs: upload-s3
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Dependencies
+        run: pip install sagemaker boto3 pandas joblib
+      - name: Upsert SageMaker Pipeline
+        run: |
+          python model-poc/training/pipeline.py --config model-poc/config.json --upsert-only

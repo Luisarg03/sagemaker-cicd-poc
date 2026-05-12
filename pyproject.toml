@@ -1,0 +1,19 @@
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "TRY"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[project]
+name = "sagemaker-cicd-poc"
+version = "0.1.0"
+dependencies = [
+    "sagemaker>=2.215.0",
+    "boto3>=1.34.0",
+    "pandas>=2.0.0",
+    "joblib>=1.3.0",
+]
