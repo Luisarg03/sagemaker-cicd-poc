@@ -1,0 +1,17 @@
+services:
+  ministack:
+    image: ministackorg/ministack
+    container_name: ministack
+    ports:
+      - "4566:4566"
+    environment:
+      - S3_PERSIST=1
+      - ECR_IN_MEMORY=1
+    volumes:
+      - ./ministack-data:/tmp/ministack
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_ministack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
