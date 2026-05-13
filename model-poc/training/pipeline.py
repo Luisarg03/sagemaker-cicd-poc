@@ -1,5 +1,3 @@
-"""Crear SageMaker Pipeline de entrenamiento (compatible con ministack y modo local)."""
-
 import argparse
 import json
 import os
@@ -14,28 +12,27 @@ from sagemaker.workflow.pipeline import Pipeline
 from sagemaker.workflow.pipeline_context import LocalPipelineSession, PipelineSession
 from sagemaker.workflow.steps import ProcessingStep, TrainingStep
 
-# Global configurations (can be overridden by config.json)
 CONFIG_DEFAULT = {
-    "account_id": "058528764918",
+    "account_id": "000000000000",
     "region": "us-east-1",
     "name_model": "placeholder",
     "team": "placeholder",
-    "cc": "9946100000",
-    "s3_bucket": "interbank-datalake-dev-us-east-1-058528764918-mlartifacts",
+    "cc": "0000000000",
+    "s3_bucket": "placeholder-bucket",
     "s3_prefix": "model_pipelines/placeholder",
-    "image_uri_processing": "058528764918.dkr.ecr.us-east-1.amazonaws.com/sagemaker-processing-uv:py3.13-cpu",
-    "image_uri_training": "058528764918.dkr.ecr.us-east-1.amazonaws.com/sagemaker-training-uv:py3.13-cpu",
-    "role_arn": "arn:aws:iam::058528764918:role/AmazonSageMaker-ExecutionRole",
+    "image_uri_preprocessing": "000000000000.dkr.ecr.us-east-1.amazonaws.com/placeholder:preprocessing",
+    "image_uri_training": "000000000000.dkr.ecr.us-east-1.amazonaws.com/placeholder:training",
+    "image_uri_validation": "000000000000.dkr.ecr.us-east-1.amazonaws.com/placeholder:validation",
+    "role_arn": "arn:aws:iam::000000000000:role/SageMakerExecutionRole",
 }
 
 
-def load_config(config_path: str):
+def load_config(config_path: str) -> dict:
     if os.path.exists(config_path):
         with open(config_path) as f:
             user_config = json.load(f)
             config = CONFIG_DEFAULT.copy()
             config.update(user_config)
-            # Dynamic prefix if not provided
             if "s3_prefix" not in user_config:
                 config["s3_prefix"] = f"model_pipelines/{config['name_model']}"
             return config
@@ -59,7 +56,7 @@ def build_preprocessing_step(
     )
 
     processor = Processor(
-        image_uri=config["image_uri_processing"],
+        image_uri=config["image_uri_preprocessing"],
         role=config["role_arn"],
         instance_type=instance_type,
         instance_count=1,
@@ -170,7 +167,7 @@ def build_validation_step(
     s3_input_model = training_step.properties.ModelArtifacts.S3ModelArtifacts
 
     processor = Processor(
-        image_uri=config["image_uri_processing"],
+        image_uri=config["image_uri_validation"],
         role=config["role_arn"],
         instance_type=instance_type,
         instance_count=1,
@@ -214,23 +211,17 @@ def build_validation_step(
     return ProcessingStep(name="Validation", step_args=step_args)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--local", action="store_true", help="Use LocalPipelineSession")
-    parser.add_argument("--s3-endpoint-url", help="S3 endpoint URL for Local/Ministack")
-    parser.add_argument(
-        "--config", default="model-poc/config.json", help="Path to config.json"
-    )
-    parser.add_argument(
-        "--upsert-only", action="store_true", help="Do not start pipeline execution"
-    )
+    parser.add_argument("--local", action="store_true")
+    parser.add_argument("--s3-endpoint-url")
+    parser.add_argument("--config", default="model-poc/config.json")
+    parser.add_argument("--upsert-only", action="store_true")
     args = parser.parse_args()
 
     config = load_config(args.config)
 
     if args.s3_endpoint_url:
-        # Inyectar el endpoint de S3 en la session de sagemaker si es necesario
-        # Para ministack, sagemaker local session necesita saber donde esta S3
         os.environ["AWS_ENDPOINT_URL_S3"] = args.s3_endpoint_url
 
     if args.local:
@@ -245,7 +236,6 @@ def main():
         {"Key": "I_CC", "Value": config["cc"]},
     ]
 
-    # Parameters
     preprocessing_instance_type = ParameterString(
         name="PreprocessingInstanceType", default_value="ml.m5.xlarge"
     )
@@ -256,16 +246,11 @@ def main():
         name="ValidationInstanceType", default_value="ml.m5.xlarge"
     )
 
-    # Build Steps
     prep_step = build_preprocessing_step(
         session, tags, preprocessing_instance_type, config
     )
     train_step = build_training_step(
-        session,
-        tags,
-        prep_step,
-        training_instance_type,
-        config,
+        session, tags, prep_step, training_instance_type, config
     )
     val_step = build_validation_step(
         session, tags, prep_step, train_step, validation_instance_type, config

@@ -6,7 +6,8 @@
     "cc": "1234567890",
     "s3_bucket": "interbank-sagemaker-poc-bucket-2",
     "s3_prefix": "poc-tests-2",
-    "image_uri_processing": "000000000000.dkr.ecr.us-east-1.amazonaws.com/sagemaker-processing-poc:latest",
-    "image_uri_training": "000000000000.dkr.ecr.us-east-1.amazonaws.com/sagemaker-training-poc:latest",
+    "image_uri_preprocessing": "000000000000.dkr.ecr.us-east-1.amazonaws.com/poc-model-2:preprocessing",
+    "image_uri_training": "000000000000.dkr.ecr.us-east-1.amazonaws.com/poc-model-2:training",
+    "image_uri_validation": "000000000000.dkr.ecr.us-east-1.amazonaws.com/poc-model-2:validation",
     "role_arn": "arn:aws:iam::000000000000:role/SageMakerExecutionRole"
 }
