@@ -70,7 +70,7 @@ Análisis estático de calidad de código en la nube. Detecta code smells, dupli
 
 ---
 
-## Seguridad (SAST)
+## Seguridad (SAST: Static Application Security Testing)
 
 ### Fluid Attacks (`fluidattacks/sast-action@v1`)
 SAST de la empresa Fluid Attacks. Genera output en formato SARIF. Configurado con `strict: true` en `.sast.yaml` **bloquea el pipeline** en hallazgos HIGH/CRITICAL. Mapea a estándares OWASP, HIPAA, PCI. Es el único gate de seguridad que bloquea en este diseño.
