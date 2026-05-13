@@ -1,18 +1,10 @@
-name: SageMaker CICD PoC
+name: SageMaker CICD
 
 on:
   push:
-    branches: [ model-poc ]
-    paths:
-      - 'model-poc/**'
-      - 'scripts/**'
-      - '.github/workflows/cicd.yml'
+    branches: ['model-*']
   pull_request:
-    branches: [ model-poc ]
-    paths:
-      - 'model-poc/**'
-      - 'scripts/**'
-      - '.github/workflows/cicd.yml'
+    branches: ['model-*']
 
 env:
   AWS_ACCESS_KEY_ID: test
@@ -39,12 +31,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Extract model name from branch
+        run: echo "MODEL_NAME=${GITHUB_REF_NAME}" >> $GITHUB_ENV
       - name: Build preprocessing image
-        run: docker build -t sagemaker-model-poc:preprocessing model-poc/training/artifacts/preprocessing/
+        run: docker build -t $MODEL_NAME:preprocessing $MODEL_NAME/training/artifacts/preprocessing/
       - name: Build training image
-        run: docker build -t sagemaker-model-poc:training model-poc/training/artifacts/training/
+        run: docker build -t $MODEL_NAME:training $MODEL_NAME/training/artifacts/training/
       - name: Build validation image
-        run: docker build -t sagemaker-model-poc:validation model-poc/training/artifacts/validation/
+        run: docker build -t $MODEL_NAME:validation $MODEL_NAME/training/artifacts/validation/
 
   upload-s3:
     needs: build-push
@@ -56,6 +50,8 @@ jobs:
           - 4566:4566
     steps:
       - uses: actions/checkout@v4
+      - name: Extract model name from branch
+        run: echo "MODEL_NAME=${GITHUB_REF_NAME}" >> $GITHUB_ENV
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -72,7 +68,7 @@ jobs:
       - name: Create S3 bucket
         run: aws s3 mb s3://interbank-sagemaker-poc-bucket --endpoint-url $MINISTACK_ENDPOINT
       - name: Upload code to S3
-        run: python scripts/deploy_s3.py --config model-poc/config.json --root model-poc --endpoint-url $MINISTACK_ENDPOINT
+        run: python scripts/deploy_s3.py --config $MODEL_NAME/config.json --root $MODEL_NAME --endpoint-url $MINISTACK_ENDPOINT
 
   deploy-pipeline:
     needs: upload-s3
@@ -84,6 +80,8 @@ jobs:
           - 4566:4566
     steps:
       - uses: actions/checkout@v4
+      - name: Extract model name from branch
+        run: echo "MODEL_NAME=${GITHUB_REF_NAME}" >> $GITHUB_ENV
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -101,8 +99,8 @@ jobs:
         run: aws s3 mb s3://interbank-sagemaker-poc-bucket --endpoint-url $MINISTACK_ENDPOINT || true
       - name: Upsert SageMaker Pipeline
         run: |
-          python model-poc/training/pipeline.py \
+          python $MODEL_NAME/training/pipeline.py \
             --local \
-            --config model-poc/config.json \
+            --config $MODEL_NAME/config.json \
             --s3-endpoint-url $MINISTACK_ENDPOINT \
             --upsert-only
