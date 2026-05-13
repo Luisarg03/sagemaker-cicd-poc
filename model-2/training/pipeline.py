@@ -215,7 +215,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--local", action="store_true")
     parser.add_argument("--s3-endpoint-url")
-    parser.add_argument("--config", default="{model-name}/config.json")
+    parser.add_argument("--config", default="model-2/config.json")
     parser.add_argument("--upsert-only", action="store_true")
     args = parser.parse_args()
 
