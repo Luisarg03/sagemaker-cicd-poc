@@ -1,0 +1,169 @@
+# CI/CD PoC — Flujo detallado por job
+# Render: d2 --theme 0 --layout elk cicd-poc-detail.d2 cicd-poc-detail.svg
+
+direction: down
+
+classes: {
+  job: {
+    style: {
+      fill: "#f8fafc"
+      stroke: "#cbd5e1"
+      stroke-width: 2
+      font-color: "#1e293b"
+      border-radius: 8
+      font-size: 12
+      bold: true
+    }
+  }
+  step-ok: {
+    style: {
+      fill: "#f0fdf4"
+      stroke: "#16a34a"
+      stroke-width: 1
+      font-color: "#14532d"
+      border-radius: 6
+      font-size: 11
+    }
+  }
+  step-local: {
+    style: {
+      fill: "#eff6ff"
+      stroke: "#3b82f6"
+      stroke-width: 1
+      font-color: "#1e3a5f"
+      border-radius: 6
+      font-size: 11
+    }
+  }
+  step-warn: {
+    style: {
+      fill: "#fffbeb"
+      stroke: "#d97706"
+      stroke-width: 1
+      font-color: "#78350f"
+      border-radius: 6
+      font-size: 11
+    }
+  }
+  actor: {
+    shape: oval
+    style: {
+      fill: "#dbeafe"
+      stroke: "#2563eb"
+      stroke-width: 2
+      font-color: "#1e3a5f"
+      font-size: 13
+      bold: true
+    }
+    width: 380
+    height: 100
+  }
+  finish: {
+    shape: oval
+    style: {
+      fill: "#f0fdf4"
+      stroke: "#16a34a"
+      stroke-width: 2
+      font-color: "#14532d"
+      font-size: 13
+      bold: true
+    }
+    width: 380
+    height: 100
+  }
+}
+
+# ─── ACTOR ─────────────────────────────────────────────────────────────────────
+
+dev: "👨‍💻 Data Scientist\npush → rama model-X" { class: actor }
+
+# ─── TRIGGER ───────────────────────────────────────────────────────────────────
+
+trigger: "🔀 Trigger" {
+  style: {
+    fill: "#eff6ff"
+    stroke: "#3b82f6"
+    stroke-width: 2
+    font-color: "#1e3a5f"
+    border-radius: 8
+    font-size: 13
+    bold: true
+  }
+
+  t1: "on: push / pull_request\nbranches: 'model-*'" { class: step-ok }
+  t2: "MODEL_NAME = GITHUB_REF_NAME" { class: step-local }
+
+  t1 -> t2
+}
+
+# ─── JOB 1 · quality ───────────────────────────────────────────────────────────
+
+job1: "Job 1 · quality" {
+  class: job
+
+  a: "ruff check .\nlint Python" { class: step-ok }
+}
+
+# ─── JOB 2 · build-push ────────────────────────────────────────────────────────
+
+job2: "Job 2 · build-push\n(needs: quality)" {
+  class: job
+
+  b: "docker build\nmodel-X:preprocessing\ncontext: artifacts/preprocessing/" { class: step-local }
+  c: "docker build\nmodel-X:training\ncontext: artifacts/training/" { class: step-local }
+  d: "docker build\nmodel-X:validation\ncontext: artifacts/validation/" { class: step-local }
+
+  b -> c -> d
+}
+
+# ─── JOB 3 · upload-s3 ─────────────────────────────────────────────────────────
+
+job3: "Job 3 · upload-s3\n(needs: build-push)" {
+  class: job
+
+  e: "service: Ministack S3\nlocalhost:4566\n(levanta en el runner)" { class: step-local }
+  f: "deploy_s3.py\n→ tarballs por step\n→ s3://bucket/prefix/model-X/code/" { class: step-local }
+
+  e -> f
+}
+
+# ─── JOB 4 · deploy-pipeline ───────────────────────────────────────────────────
+
+job4: "Job 4 · deploy-pipeline\n(needs: upload-s3)" {
+  class: job
+
+  g: "service: Ministack S3\nlocalhost:4566" { class: step-local }
+  h: "pipeline.py --local --upsert-only\n→ LocalPipelineSession\n→ pipeline.upsert()" { class: step-local }
+
+  g -> h
+}
+
+# ─── RESULTADO ─────────────────────────────────────────────────────────────────
+
+result: "✅ Pipeline registrado\nvalidado sin cuenta AWS real" { class: finish }
+
+# ─── EDGES PRINCIPALES ─────────────────────────────────────────────────────────
+
+dev -> trigger: "git push" {
+  style: { stroke: "#2563eb"; stroke-width: 2; font-color: "#1d4ed8"; font-size: 11 }
+}
+
+trigger -> job1 {
+  style: { stroke: "#64748b"; stroke-width: 2 }
+}
+
+job1 -> job2: "✅ lint ok" {
+  style: { stroke: "#16a34a"; stroke-width: 2; font-color: "#15803d"; font-size: 11 }
+}
+
+job2 -> job3: "secuencial" {
+  style: { stroke: "#3b82f6"; stroke-width: 2; font-color: "#1d4ed8"; font-size: 11 }
+}
+
+job3 -> job4: "secuencial" {
+  style: { stroke: "#3b82f6"; stroke-width: 2; font-color: "#1d4ed8"; font-size: 11 }
+}
+
+job4 -> result {
+  style: { stroke: "#16a34a"; stroke-width: 2 }
+}

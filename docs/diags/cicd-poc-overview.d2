@@ -1,0 +1,101 @@
+# CI/CD PoC — Overview End-to-End (alto nivel)
+# Render: d2 --theme 0 --layout elk cicd-poc-overview.d2 cicd-poc-overview.svg
+
+direction: down
+
+classes: {
+  actor: {
+    shape: oval
+    style: {
+      fill: "#dbeafe"
+      stroke: "#2563eb"
+      stroke-width: 3
+      font-color: "#1e3a5f"
+      font-size: 18
+      bold: true
+    }
+    width: 480
+    height: 160
+  }
+  step: {
+    style: {
+      fill: "#f8fafc"
+      stroke: "#94a3b8"
+      stroke-width: 2
+      font-color: "#1e293b"
+      border-radius: 14
+      font-size: 20
+      bold: true
+    }
+    width: 480
+    height: 90
+  }
+  local: {
+    style: {
+      fill: "#eff6ff"
+      stroke: "#3b82f6"
+      stroke-width: 2
+      font-color: "#1e3a5f"
+      border-radius: 14
+      font-size: 20
+      bold: true
+    }
+    width: 480
+    height: 90
+  }
+  finish: {
+    shape: oval
+    style: {
+      fill: "#f0fdf4"
+      stroke: "#16a34a"
+      stroke-width: 3
+      font-color: "#14532d"
+      font-size: 18
+      bold: true
+    }
+    width: 480
+    height: 160
+  }
+}
+
+# ─── NODOS ─────────────────────────────────────────────────────────────────────
+
+ds: "👨‍💻 Data Scientist\npush → rama model-X" { class: actor }
+
+push: "1 · Push\ngit push → rama model-X" { class: step }
+
+quality: "2 · Lint\nruff check" { class: step }
+
+build: "3 · Build Docker\nImágenes locales por step\n(sin push a registry)" { class: local }
+
+upload: "4 · Upload S3 local\ndeploy_s3.py → Ministack :4566" { class: local }
+
+register: "5 · Register Pipeline\npipeline.upsert() — LocalPipelineSession\nMinistack :4566" { class: local }
+
+finish: "✅ Pipeline validado\nsin cuenta AWS real\nlocalmente en el runner" { class: finish }
+
+# ─── FLUJO ─────────────────────────────────────────────────────────────────────
+
+ds -> push {
+  style: { stroke: "#2563eb"; stroke-width: 2 }
+}
+
+push -> quality: "GitHub Actions" {
+  style: { stroke: "#64748b"; stroke-width: 2; font-color: "#475569"; font-size: 11 }
+}
+
+quality -> build: "✅ lint ok" {
+  style: { stroke: "#16a34a"; stroke-width: 2; font-color: "#15803d"; font-size: 11 }
+}
+
+build -> upload: "secuencial" {
+  style: { stroke: "#3b82f6"; stroke-width: 2; font-color: "#1d4ed8"; font-size: 11 }
+}
+
+upload -> register: "secuencial" {
+  style: { stroke: "#3b82f6"; stroke-width: 2; font-color: "#1d4ed8"; font-size: 11 }
+}
+
+register -> finish {
+  style: { stroke: "#16a34a"; stroke-width: 2 }
+}
