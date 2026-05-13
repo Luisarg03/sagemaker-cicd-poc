@@ -40,11 +40,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build preprocessing image
-        run: docker build -t sagemaker-model-poc:preprocessing -f model-poc/training/artifacts/preprocessing/Dockerfile .
+        run: docker build -t sagemaker-model-poc:preprocessing model-poc/training/artifacts/preprocessing/
       - name: Build training image
-        run: docker build -t sagemaker-model-poc:training -f model-poc/training/artifacts/training/Dockerfile .
+        run: docker build -t sagemaker-model-poc:training model-poc/training/artifacts/training/
       - name: Build validation image
-        run: docker build -t sagemaker-model-poc:validation -f model-poc/training/artifacts/validation/Dockerfile .
+        run: docker build -t sagemaker-model-poc:validation model-poc/training/artifacts/validation/
 
   upload-s3:
     needs: build-push
