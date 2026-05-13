@@ -9,15 +9,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     UV_COMPILE_BYTECODE=1 \
     PATH="/usr/local/bin:${PATH}"
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        build-essential \
-        ca-certificates \
-        curl \
-        git \
-        tar \
-        gzip \
-    && rm -rf /var/lib/apt/lists/*
+# Uncomment for real builds (requires network access to apt repos):
+# RUN apt-get update \
+#     && apt-get install -y --no-install-recommends \
+#         build-essential ca-certificates curl git tar gzip \
+#     && rm -rf /var/lib/apt/lists/*
 
 # Install UV
 COPY --from=ghcr.io/astral-sh/uv:0.11.11 /uv /uvx /usr/local/bin/

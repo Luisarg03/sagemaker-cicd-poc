@@ -100,7 +100,7 @@ def deploy(s3_client: Any, root: Path, bucket: str, prefix: str, included: set[P
             for subdir in sorted(dirnames):
                 rel_tar = rel_current / subdir / TARBALL_NAME
                 key = f'{prefix}/{rel_tar.as_posix()}'
-                upload_directory_as_tarball(current / subdir, s3_client, bucket, key, included)
+                upload_directory_as_tarball(s3_client, current / subdir, bucket, key, included)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description='Deploy model code to S3.')

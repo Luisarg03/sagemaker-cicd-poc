@@ -2,9 +2,9 @@ name: SageMaker CICD PoC
 
 on:
   push:
-    branches: [ main ]
+    branches: [ model-poc ]
   pull_request:
-    branches: [ main ]
+    branches: [ model-poc ]
 
 jobs:
   quality:
@@ -28,9 +28,9 @@ jobs:
       - name: Build Docker Image (Simulated)
         run: |
           echo "Building image for processing..."
-          docker build -t sagemaker-processing-poc:latest -f docker/Dockerfile.processing .
+          docker build -t sagemaker-processing-poc:latest -f docker/processing/Dockerfile .
           echo "Building image for training..."
-          docker build -t sagemaker-training-poc:latest -f docker/Dockerfile.training .
+          docker build -t sagemaker-training-poc:latest -f docker/training/Dockerfile .
       - name: Push to ECR (Simulated)
         run: |
           echo "Pushing images to ECR (Local/Ministack simulation)..."
