@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ model-poc ]
 
+env:
+  AWS_ACCESS_KEY_ID: test
+  AWS_SECRET_ACCESS_KEY: test
+  AWS_DEFAULT_REGION: us-east-1
+  MINISTACK_ENDPOINT: http://localhost:4566
+
 jobs:
   quality:
     runs-on: ubuntu-latest
@@ -25,20 +31,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build Docker Image (Simulated)
-        run: |
-          echo "Building image for processing..."
-          docker build -t sagemaker-processing-poc:latest -f docker/processing/Dockerfile .
-          echo "Building image for training..."
-          docker build -t sagemaker-training-poc:latest -f docker/training/Dockerfile .
-      - name: Push to ECR (Simulated)
-        run: |
-          echo "Pushing images to ECR (Local/Ministack simulation)..."
-          # In a real scenario: aws ecr get-login-password | docker login ...
+      - name: Build processing image
+        run: docker build -t sagemaker-processing-poc:latest -f docker/processing/Dockerfile .
+      - name: Build training image
+        run: docker build -t sagemaker-training-poc:latest -f docker/training/Dockerfile .
 
   upload-s3:
     needs: build-push
     runs-on: ubuntu-latest
+    services:
+      ministack:
+        image: ministackorg/ministack:latest
+        ports:
+          - 4566:4566
+        options: >-
+          --health-cmd "curl -sf http://localhost:4566 || exit 1"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -47,14 +57,24 @@ jobs:
           python-version: '3.12'
       - name: Install Dependencies
         run: pip install boto3
-      - name: Upload code to S3 (Local simulation)
-        run: |
-          # Note: In GHA this would need endpoint-url for ministack if running in a containerized environment
-          python scripts/deploy_s3.py --config model-poc/config.json --root model-poc
+      - name: Create S3 bucket
+        run: aws s3 mb s3://company-sagemaker-poc-bucket --endpoint-url $MINISTACK_ENDPOINT
+      - name: Upload code to S3
+        run: python scripts/deploy_s3.py --config model-poc/config.json --root model-poc --endpoint-url $MINISTACK_ENDPOINT
 
   deploy-pipeline:
     needs: upload-s3
     runs-on: ubuntu-latest
+    services:
+      ministack:
+        image: ministackorg/ministack:latest
+        ports:
+          - 4566:4566
+        options: >-
+          --health-cmd "curl -sf http://localhost:4566 || exit 1"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -62,7 +82,11 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install Dependencies
-        run: pip install sagemaker boto3 pandas joblib
+        run: pip install "sagemaker==2.232.0" boto3 pandas joblib
       - name: Upsert SageMaker Pipeline
         run: |
-          python model-poc/training/pipeline.py --config model-poc/config.json --upsert-only
+          python model-poc/training/pipeline.py \
+            --local \
+            --config model-poc/config.json \
+            --s3-endpoint-url $MINISTACK_ENDPOINT \
+            --upsert-only
