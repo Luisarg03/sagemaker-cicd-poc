@@ -15,11 +15,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 #         build-essential ca-certificates curl git tar gzip \
 #     && rm -rf /var/lib/apt/lists/*
 
-# Install UV
 COPY --from=ghcr.io/astral-sh/uv:0.11.11 /uv /uvx /usr/local/bin/
 
-COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# SageMaker sends SIGINT/SIGKILL to PID 1
+COPY main.py /opt/ml/input/data/code/main.py
+
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["train"]

@@ -5,14 +5,12 @@ on:
     branches: [ model-poc ]
     paths:
       - 'model-poc/**'
-      - 'docker/**'
       - 'scripts/**'
       - '.github/workflows/cicd.yml'
   pull_request:
     branches: [ model-poc ]
     paths:
       - 'model-poc/**'
-      - 'docker/**'
       - 'scripts/**'
       - '.github/workflows/cicd.yml'
 
@@ -41,10 +39,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build processing image
-        run: docker build -t sagemaker-processing-poc:latest -f docker/processing/Dockerfile .
+      - name: Build preprocessing image
+        run: docker build -t sagemaker-model-poc:preprocessing -f model-poc/training/artifacts/preprocessing/Dockerfile .
       - name: Build training image
-        run: docker build -t sagemaker-training-poc:latest -f docker/training/Dockerfile .
+        run: docker build -t sagemaker-model-poc:training -f model-poc/training/artifacts/training/Dockerfile .
+      - name: Build validation image
+        run: docker build -t sagemaker-model-poc:validation -f model-poc/training/artifacts/validation/Dockerfile .
 
   upload-s3:
     needs: build-push

@@ -1,5 +1,3 @@
-"""Crear SageMaker Pipeline de entrenamiento (compatible con ministack y modo local)."""
-
 import argparse
 import json
 import os
@@ -14,18 +12,18 @@ from sagemaker.workflow.pipeline import Pipeline
 from sagemaker.workflow.pipeline_context import LocalPipelineSession, PipelineSession
 from sagemaker.workflow.steps import ProcessingStep, TrainingStep
 
-# Global configurations (can be overridden by config.json)
 CONFIG_DEFAULT = {
-    "account_id": "058528764918",
+    "account_id": "000000000000",
     "region": "us-east-1",
     "name_model": "placeholder",
     "team": "placeholder",
-    "cc": "9946100000",
-    "s3_bucket": "company-datalake-dev-us-east-1-058528764918-mlartifacts",
+    "cc": "0000000000",
+    "s3_bucket": "placeholder-bucket",
     "s3_prefix": "model_pipelines/placeholder",
-    "image_uri_processing": "058528764918.dkr.ecr.us-east-1.amazonaws.com/sagemaker-processing-uv:py3.13-cpu",
-    "image_uri_training": "058528764918.dkr.ecr.us-east-1.amazonaws.com/sagemaker-training-uv:py3.13-cpu",
-    "role_arn": "arn:aws:iam::058528764918:role/AmazonSageMaker-ExecutionRole",
+    "image_uri_preprocessing": "000000000000.dkr.ecr.us-east-1.amazonaws.com/placeholder:preprocessing",
+    "image_uri_training": "000000000000.dkr.ecr.us-east-1.amazonaws.com/placeholder:training",
+    "image_uri_validation": "000000000000.dkr.ecr.us-east-1.amazonaws.com/placeholder:validation",
+    "role_arn": "arn:aws:iam::000000000000:role/SageMakerExecutionRole",
 }
 
 
@@ -59,7 +57,7 @@ def build_preprocessing_step(
     )
 
     processor = Processor(
-        image_uri=config["image_uri_processing"],
+        image_uri=config["image_uri_preprocessing"],
         role=config["role_arn"],
         instance_type=instance_type,
         instance_count=1,
@@ -170,7 +168,7 @@ def build_validation_step(
     s3_input_model = training_step.properties.ModelArtifacts.S3ModelArtifacts
 
     processor = Processor(
-        image_uri=config["image_uri_processing"],
+        image_uri=config["image_uri_validation"],
         role=config["role_arn"],
         instance_type=instance_type,
         instance_count=1,
@@ -219,7 +217,7 @@ def main():
     parser.add_argument("--local", action="store_true", help="Use LocalPipelineSession")
     parser.add_argument("--s3-endpoint-url", help="S3 endpoint URL for Local/Ministack")
     parser.add_argument(
-        "--config", default="model-poc/config.json", help="Path to config.json"
+        "--config", default="model-poc-2/config.json", help="Path to config.json"
     )
     parser.add_argument(
         "--upsert-only", action="store_true", help="Do not start pipeline execution"
