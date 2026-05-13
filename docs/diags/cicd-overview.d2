@@ -1,0 +1,114 @@
+# CI/CD — Overview End-to-End (alto nivel)
+# Render: d2 --theme 0 --layout elk cicd-overview.d2 cicd-overview.svg
+
+direction: down
+
+classes: {
+  actor: {
+    shape: oval
+    style: {
+      fill: "#dbeafe"
+      stroke: "#2563eb"
+      stroke-width: 3
+      font-color: "#1e3a5f"
+      font-size: 18
+      bold: true
+    }
+    width: 480
+    height: 160
+  }
+  step: {
+    style: {
+      fill: "#f8fafc"
+      stroke: "#94a3b8"
+      stroke-width: 2
+      font-color: "#1e293b"
+      border-radius: 14
+      font-size: 20
+      bold: true
+    }
+    width: 380
+    height: 90
+  }
+  gate: {
+    style: {
+      fill: "#fff1f2"
+      stroke: "#dc2626"
+      stroke-width: 3
+      font-color: "#7f1d1d"
+      border-radius: 14
+      font-size: 20
+      bold: true
+    }
+    width: 380
+    height: 90
+  }
+  aws: {
+    style: {
+      fill: "#fff7ed"
+      stroke: "#ea580c"
+      stroke-width: 2
+      font-color: "#7c2d12"
+      border-radius: 14
+      font-size: 20
+      bold: true
+    }
+    width: 380
+    height: 90
+  }
+  finish: {
+    shape: oval
+    style: {
+      fill: "#f0fdf4"
+      stroke: "#16a34a"
+      stroke-width: 3
+      font-color: "#14532d"
+      font-size: 18
+      bold: true
+    }
+    width: 480
+    height: 160
+  }
+}
+
+# ─── NODOS ─────────────────────────────────────────────────────────────────────
+
+ds: "👨‍💻 Data Scientist" { class: actor }
+
+push: "1 · Push\ngit push → rama model-X" { class: step }
+
+quality: "2 · Code Quality\nSonar · Fluid Attacks · Semgrep" { class: gate }
+
+build: "3 · Build & Upload\nImágenes → ECR\nCódigo → S3" { class: aws }
+
+register: "4 · Register Pipeline\npipeline.upsert()\nen SageMaker Studio" { class: aws }
+
+run: "5 · Ejecución Manual\nData Scientist dispara\nel pipeline en Studio" { class: step }
+
+sagemaker: "☁ SageMaker\nPreprocessing · Training · Validation" { class: finish }
+
+# ─── FLUJO ─────────────────────────────────────────────────────────────────────
+
+ds -> push: "" {
+  style: { stroke: "#2563eb"; stroke-width: 2 }
+}
+
+push -> quality: "GitHub Actions" {
+  style: { stroke: "#64748b"; stroke-width: 2; font-color: "#475569"; font-size: 11 }
+}
+
+quality -> build: "✅ gates ok" {
+  style: { stroke: "#16a34a"; stroke-width: 2; font-color: "#15803d"; font-size: 11 }
+}
+
+build -> register: "" {
+  style: { stroke: "#ea580c"; stroke-width: 2 }
+}
+
+register -> run: "listo para correr" {
+  style: { stroke: "#64748b"; stroke-width: 2; font-color: "#475569"; font-size: 11 }
+}
+
+run -> sagemaker: "dispara pipeline" {
+  style: { stroke: "#ea580c"; stroke-width: 2; font-color: "#c2410c"; font-size: 11 }
+}

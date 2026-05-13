@@ -1,0 +1,232 @@
+# CI/CD — Modelos ML en SageMaker
+# Stack: GitHub Actions · S3 · ECR · SageMaker Studio · Sonarcloud · Fluid Attacks
+# Render: d2 --theme 0 --layout elk cicd-diagram.d2 cicd-diagram.svg
+
+direction: down
+
+# ─── STYLES ────────────────────────────────────────────────────────────────────
+
+classes: {
+  trigger: {
+    style: {
+      fill: "#eff6ff"
+      stroke: "#3b82f6"
+      stroke-width: 2
+      font-color: "#1e3a5f"
+      border-radius: 8
+      font-size: 13
+      bold: true
+    }
+  }
+  job: {
+    style: {
+      fill: "#f8fafc"
+      stroke: "#cbd5e1"
+      stroke-width: 2
+      font-color: "#1e293b"
+      border-radius: 8
+      font-size: 12
+      bold: true
+    }
+  }
+  step-ok: {
+    style: {
+      fill: "#f0fdf4"
+      stroke: "#16a34a"
+      stroke-width: 1
+      font-color: "#14532d"
+      border-radius: 6
+      font-size: 11
+    }
+  }
+  step-warn: {
+    style: {
+      fill: "#fffbeb"
+      stroke: "#d97706"
+      stroke-width: 1
+      font-color: "#78350f"
+      border-radius: 6
+      font-size: 11
+    }
+  }
+  step-block: {
+    style: {
+      fill: "#fff1f2"
+      stroke: "#dc2626"
+      stroke-width: 2
+      font-color: "#7f1d1d"
+      border-radius: 6
+      font-size: 11
+    }
+  }
+  step-aws: {
+    style: {
+      fill: "#fff7ed"
+      stroke: "#ea580c"
+      stroke-width: 1
+      font-color: "#7c2d12"
+      border-radius: 6
+      font-size: 11
+    }
+  }
+  actor: {
+    shape: oval
+    style: {
+      fill: "#dbeafe"
+      stroke: "#2563eb"
+      stroke-width: 2
+      font-color: "#1e3a5f"
+      font-size: 13
+      bold: true
+    }
+  }
+}
+
+# ─── ACTOR ─────────────────────────────────────────────────────────────────────
+
+dev: "👨‍💻 Data Scientist\npush → rama model-X" {
+  class: actor
+}
+
+# ─── TRIGGER ───────────────────────────────────────────────────────────────────
+
+trigger: "🔀 Trigger" {
+  class: trigger
+
+  t1: "on: push  branches: 'model-*'\nFiltro por convención de branch" {
+    class: step-ok
+  }
+  t2: "Extraer MODEL_NAME\nde GITHUB_REF_NAME" {
+    class: step-warn
+  }
+
+  t1 -> t2
+}
+
+# ─── JOB 1 · code-quality ──────────────────────────────────────────────────────
+
+job1: "Job 1 · code-quality" {
+  class: job
+
+  a: "Checkout + Setup Python" {
+    class: step-ok
+  }
+  b: "🔍 SonarSource/sonarqube-scan-action@v7\n⚠ informativo" {
+    class: step-warn
+  }
+  c: "🛡 Fluid Attacks SAST\nfluidattacks/sast-action@v1\n❌ bloquea si HIGH / CRITICAL" {
+    class: step-block
+  }
+  d: "🔎 Semgrep (p/security-audit)\n+ PyCQA/bandit-action@v1\n⚠ informativo" {
+    class: step-warn
+  }
+
+  a -> b -> c -> d
+}
+
+# ─── JOB 2 · build-and-push ────────────────────────────────────────────────────
+
+job2: "Job 2 · build-and-push\n(needs: Job 1)" {
+  class: job
+
+  e: "⚠ Auth AWS via OIDC\n(método a confirmar)" {
+    class: step-warn
+  }
+  f: "Crear ECR repo si no existe\ntry create_repository\nexcept RepositoryAlreadyExistsException" {
+    class: step-aws
+  }
+  g: "Build paralelo por step\npreprocessing · training · validation" {
+    class: step-aws
+  }
+  h: "Push a ECR — doble tag\n:step-SHA  (inmutable)\n:step      (mutable)" {
+    class: step-aws
+  }
+
+  e -> f -> g -> h
+}
+
+# ─── JOB 3 · upload-assets ─────────────────────────────────────────────────────
+
+job3: "Job 3 · upload-assets\n(needs: Job 1)" {
+  class: job
+
+  i: "⚠ Auth AWS\n(mismo Role que Job 2)" {
+    class: step-warn
+  }
+  j: "aws s3 sync model-X/\n→ s3://bucket/model_pipelines/model-X/\n(sobreescribe — ruta estática)" {
+    class: step-aws
+  }
+
+  i -> j
+}
+
+# ─── JOB 4 · deploy-pipeline ───────────────────────────────────────────────────
+
+job4: "Job 4 · deploy-pipeline\n(needs: Job 2 + Job 3)" {
+  class: job
+
+  k: "python model-X/training/pipeline.py\npipeline.upsert(role_arn, tags=[SHA, branch])" {
+    class: step-aws
+  }
+  l: "✅ Pipeline registrado\nen SageMaker Studio\nlisto para ejecución manual" {
+    class: step-ok
+  }
+
+  k -> l
+}
+
+# ─── EDGES PRINCIPALES ─────────────────────────────────────────────────────────
+
+dev -> trigger: "git push" {
+  style: {
+    stroke: "#2563eb"
+    stroke-width: 2
+    font-color: "#1d4ed8"
+    font-size: 11
+  }
+}
+
+trigger -> job1 {
+  style: {
+    stroke: "#64748b"
+    stroke-width: 2
+  }
+}
+
+job1 -> job2: "parallel" {
+  style: {
+    stroke: "#6366f1"
+    stroke-width: 2
+    stroke-dash: 4
+    font-color: "#4338ca"
+    font-size: 11
+  }
+}
+
+job1 -> job3: "parallel" {
+  style: {
+    stroke: "#6366f1"
+    stroke-width: 2
+    stroke-dash: 4
+    font-color: "#4338ca"
+    font-size: 11
+  }
+}
+
+job2 -> job4: "images ready" {
+  style: {
+    stroke: "#ea580c"
+    stroke-width: 2
+    font-color: "#c2410c"
+    font-size: 11
+  }
+}
+
+job3 -> job4: "assets ready" {
+  style: {
+    stroke: "#ea580c"
+    stroke-width: 2
+    font-color: "#c2410c"
+    font-size: 11
+  }
+}
