@@ -1,20 +1,20 @@
-name: SageMaker CICD PoC
+name: SageMaker CICD PoC — model-poc-2
 
 on:
   push:
     branches: [ model-poc ]
     paths:
-      - 'model-poc/**'
+      - 'model-poc-2/**'
       - 'docker/**'
       - 'scripts/**'
-      - '.github/workflows/cicd.yml'
+      - '.github/workflows/cicd-model-poc-2.yml'
   pull_request:
     branches: [ model-poc ]
     paths:
-      - 'model-poc/**'
+      - 'model-poc-2/**'
       - 'docker/**'
       - 'scripts/**'
-      - '.github/workflows/cicd.yml'
+      - '.github/workflows/cicd-model-poc-2.yml'
 
 env:
   AWS_ACCESS_KEY_ID: test
@@ -70,9 +70,9 @@ jobs:
             sleep 3
           done
       - name: Create S3 bucket
-        run: aws s3 mb s3://company-sagemaker-poc-bucket --endpoint-url $MINISTACK_ENDPOINT
+        run: aws s3 mb s3://company-sagemaker-poc-bucket-2 --endpoint-url $MINISTACK_ENDPOINT
       - name: Upload code to S3
-        run: python scripts/deploy_s3.py --config model-poc/config.json --root model-poc --endpoint-url $MINISTACK_ENDPOINT
+        run: python scripts/deploy_s3.py --config model-poc-2/config.json --root model-poc-2 --endpoint-url $MINISTACK_ENDPOINT
 
   deploy-pipeline:
     needs: upload-s3
@@ -98,11 +98,10 @@ jobs:
             sleep 3
           done
       - name: Create S3 bucket
-        run: aws s3 mb s3://company-sagemaker-poc-bucket --endpoint-url $MINISTACK_ENDPOINT || true
-      - name: Upsert SageMaker Pipeline
+        run: aws s3 mb s3://company-sagemaker-poc-bucket-2 --endpoint-url $MINISTACK_ENDPOINT || true
+      - name: Upsert and Run SageMaker Pipeline
         run: |
-          python model-poc/training/pipeline.py \
+          python model-poc-2/training/pipeline.py \
             --local \
-            --config model-poc/config.json \
-            --s3-endpoint-url $MINISTACK_ENDPOINT \
-            --upsert-only
+            --config model-poc-2/config.json \
+            --s3-endpoint-url $MINISTACK_ENDPOINT

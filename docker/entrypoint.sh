@@ -5,10 +5,11 @@ set -euo pipefail
 # SM_CODE_DIR is set by SageMaker for Training Jobs.
 # For Processing Jobs, code is typically at /opt/ml/processing/input/code.
 if [ -n "${SM_MODULE:-}" ]; then
-    # Training Job context
-    CODE_DIR="${HOME}/.local/lib/python3.13/site-packages" # Generic fallback if SM_MODULE is set but not installed
-    # In SageMaker Training, the sourcedir.tar.gz is extracted to /opt/ml/code
+    # Training Job context (real SageMaker): sourcedir.tar.gz extracted to /opt/ml/code
     CODE_DIR="/opt/ml/code"
+elif [ -d "/opt/ml/input/data/code" ]; then
+    # Local mode Training Job: code channel mounted at /opt/ml/input/data/code
+    CODE_DIR="/opt/ml/input/data/code"
 else
     # Processing Job context
     CODE_DIR="${SM_CODE_DIR:-/opt/ml/processing/input/code}"
