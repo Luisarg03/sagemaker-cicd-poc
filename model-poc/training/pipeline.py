@@ -3,7 +3,6 @@
 import os
 import json
 import argparse
-import boto3
 from sagemaker.estimator import Estimator
 from sagemaker.inputs import TrainingInput
 from sagemaker.processing import Processor, ProcessingInput, ProcessingOutput
@@ -226,7 +225,6 @@ def main():
 
     config = load_config(args.config)
 
-    sagemaker_client_kwargs = {}
     if args.s3_endpoint_url:
         # Inyectar el endpoint de S3 en la session de sagemaker si es necesario
         # Para ministack, sagemaker local session necesita saber donde esta S3
