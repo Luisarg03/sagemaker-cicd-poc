@@ -27,13 +27,12 @@ CONFIG_DEFAULT = {
 }
 
 
-def load_config(config_path: str):
+def load_config(config_path: str) -> dict:
     if os.path.exists(config_path):
         with open(config_path) as f:
             user_config = json.load(f)
             config = CONFIG_DEFAULT.copy()
             config.update(user_config)
-            # Dynamic prefix if not provided
             if "s3_prefix" not in user_config:
                 config["s3_prefix"] = f"model_pipelines/{config['name_model']}"
             return config
@@ -212,23 +211,17 @@ def build_validation_step(
     return ProcessingStep(name="Validation", step_args=step_args)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--local", action="store_true", help="Use LocalPipelineSession")
-    parser.add_argument("--s3-endpoint-url", help="S3 endpoint URL for Local/Ministack")
-    parser.add_argument(
-        "--config", default="model-poc-2/config.json", help="Path to config.json"
-    )
-    parser.add_argument(
-        "--upsert-only", action="store_true", help="Do not start pipeline execution"
-    )
+    parser.add_argument("--local", action="store_true")
+    parser.add_argument("--s3-endpoint-url")
+    parser.add_argument("--config", default="{model-name}/config.json")
+    parser.add_argument("--upsert-only", action="store_true")
     args = parser.parse_args()
 
     config = load_config(args.config)
 
     if args.s3_endpoint_url:
-        # Inyectar el endpoint de S3 en la session de sagemaker si es necesario
-        # Para ministack, sagemaker local session necesita saber donde esta S3
         os.environ["AWS_ENDPOINT_URL_S3"] = args.s3_endpoint_url
 
     if args.local:
@@ -243,7 +236,6 @@ def main():
         {"Key": "I_CC", "Value": config["cc"]},
     ]
 
-    # Parameters
     preprocessing_instance_type = ParameterString(
         name="PreprocessingInstanceType", default_value="ml.m5.xlarge"
     )
@@ -254,16 +246,11 @@ def main():
         name="ValidationInstanceType", default_value="ml.m5.xlarge"
     )
 
-    # Build Steps
     prep_step = build_preprocessing_step(
         session, tags, preprocessing_instance_type, config
     )
     train_step = build_training_step(
-        session,
-        tags,
-        prep_step,
-        training_instance_type,
-        config,
+        session, tags, prep_step, training_instance_type, config
     )
     val_step = build_validation_step(
         session, tags, prep_step, train_step, validation_instance_type, config
