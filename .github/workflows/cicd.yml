@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Install Linting Tools
@@ -53,7 +53,7 @@ jobs:
       - name: Extract model name from branch
         run: echo "MODEL_NAME=${GITHUB_REF_NAME}" >> $GITHUB_ENV
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Install Dependencies
@@ -83,7 +83,7 @@ jobs:
       - name: Extract model name from branch
         run: echo "MODEL_NAME=${GITHUB_REF_NAME}" >> $GITHUB_ENV
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Install Dependencies
