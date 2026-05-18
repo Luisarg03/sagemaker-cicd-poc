@@ -4,7 +4,7 @@ on:
   push:
     branches: ['model-*']
   pull_request:
-    branches: ['model-*']
+    branches: ['model-*', 'qa', 'prod']
 
 env:
   AWS_ACCESS_KEY_ID: test
