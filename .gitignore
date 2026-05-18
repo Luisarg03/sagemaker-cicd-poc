@@ -159,3 +159,6 @@ cython_debug/
 # Docker
 .docker/
 docker-compose.override.yml
+
+# Agent internal state
+.sisyphus/
