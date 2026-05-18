@@ -2,7 +2,7 @@ name: SageMaker CICD
 
 on:
   push:
-    branches: ['model-*']
+    branches: ['model-*', 'main', 'qa', 'prod']
   pull_request:
     branches: ['model-*', 'qa', 'prod']
 
@@ -147,7 +147,7 @@ jobs:
           done
 
   promote-to-qa:
-    if: github.event_name == 'pull_request' && github.base_ref == 'qa'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/qa'
     runs-on: ubuntu-latest
     services:
       registry:
@@ -157,7 +157,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Extract model name
-        run: echo "MODEL_NAME=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+        run: echo "MODEL_NAME=${{ github.event.repository.name }}" >> $GITHUB_ENV
       - name: Promote images to QA
         run: |
           # TODO: replace with jf rt docker-promote when Artifactory is available
@@ -168,7 +168,7 @@ jobs:
           done
 
   promote-to-prod:
-    if: github.event_name == 'pull_request' && github.base_ref == 'prod'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/prod'
     runs-on: ubuntu-latest
     services:
       registry:
@@ -178,7 +178,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Extract model name
-        run: echo "MODEL_NAME=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+        run: echo "MODEL_NAME=${{ github.event.repository.name }}" >> $GITHUB_ENV
       - name: Promote images to Prod
         run: |
           # TODO: replace with jf rt docker-promote when Artifactory is available
