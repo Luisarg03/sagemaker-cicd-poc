@@ -97,6 +97,14 @@ jobs:
           done
       - name: Create S3 bucket
         run: aws s3 mb s3://company-sagemaker-poc-bucket --endpoint-url $MINISTACK_ENDPOINT || true
+      - name: Inject image URIs into config
+        run: |
+          if [[ "$GITHUB_REF_NAME" == "main" ]]; then ENV=dev
+          elif [[ "$GITHUB_REF_NAME" == "qa" ]]; then ENV=qa
+          elif [[ "$GITHUB_REF_NAME" == "prod" ]]; then ENV=prod
+          else ENV=dev
+          fi
+          python scripts/update_config.py --env $ENV --sha ${{ github.sha }} --config $MODEL_NAME/config.json
       - name: Upsert SageMaker Pipeline
         run: |
           python $MODEL_NAME/training/pipeline.py \
@@ -104,3 +112,79 @@ jobs:
             --config $MODEL_NAME/config.json \
             --s3-endpoint-url $MINISTACK_ENDPOINT \
             --upsert-only
+
+  ghas-dependency-review:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+
+  publish-to-registry:
+    needs: build-push
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5001:5000
+    outputs:
+      registry_url: localhost:5001
+      image_tag: sha-${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract model name from branch
+        run: echo "MODEL_NAME=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+      - name: Tag and push images to registry
+        run: |
+          for step in preprocessing training validation; do
+            docker tag $MODEL_NAME:$step localhost:5001/$MODEL_NAME/$step:sha-${{ github.sha }}
+            docker push localhost:5001/$MODEL_NAME/$step:sha-${{ github.sha }}
+          done
+
+  promote-to-qa:
+    if: github.event_name == 'pull_request' && github.base_ref == 'qa'
+    runs-on: ubuntu-latest
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5001:5000
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract model name
+        run: echo "MODEL_NAME=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+      - name: Promote images to QA
+        run: |
+          # TODO: replace with jf rt docker-promote when Artifactory is available
+          for step in preprocessing training validation; do
+            docker pull localhost:5001/$MODEL_NAME/$step:sha-${{ github.sha }}
+            docker tag localhost:5001/$MODEL_NAME/$step:sha-${{ github.sha }} localhost:5001/$MODEL_NAME/$step:qa-${{ github.sha }}
+            docker push localhost:5001/$MODEL_NAME/$step:qa-${{ github.sha }}
+          done
+
+  promote-to-prod:
+    if: github.event_name == 'pull_request' && github.base_ref == 'prod'
+    runs-on: ubuntu-latest
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5001:5000
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract model name
+        run: echo "MODEL_NAME=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+      - name: Promote images to Prod
+        run: |
+          # TODO: replace with jf rt docker-promote when Artifactory is available
+          for step in preprocessing training validation; do
+            docker pull localhost:5001/$MODEL_NAME/$step:sha-${{ github.sha }}
+            docker tag localhost:5001/$MODEL_NAME/$step:sha-${{ github.sha }} localhost:5001/$MODEL_NAME/$step:prod-${{ github.sha }}
+            docker push localhost:5001/$MODEL_NAME/$step:prod-${{ github.sha }}
+          done
+
