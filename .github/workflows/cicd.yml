@@ -2,9 +2,9 @@ name: SageMaker CICD
 
 on:
   push:
-    branches: ['model-*']
+    branches: ['model-*', 'main', 'qa', 'prod']
   pull_request:
-    branches: ['model-*']
+    branches: ['model-*', 'qa', 'prod']
 
 env:
   AWS_ACCESS_KEY_ID: test
@@ -28,6 +28,7 @@ jobs:
 
   build-push:
     needs: quality
+    if: startsWith(github.ref, 'refs/heads/model-') || (github.event_name == 'pull_request' && startsWith(github.head_ref, 'model-'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -147,7 +148,7 @@ jobs:
           done
 
   promote-to-qa:
-    if: github.event_name == 'pull_request' && github.base_ref == 'qa'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/qa'
     runs-on: ubuntu-latest
     services:
       registry:
@@ -157,8 +158,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Extract model name
-        run: echo "MODEL_NAME=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+        run: echo "MODEL_NAME=${{ github.event.repository.name }}" >> $GITHUB_ENV
       - name: Promote images to QA
+        continue-on-error: true  # PoC limitation: local registry is ephemeral per job. With Artifactory, docker pull would succeed.
         run: |
           # TODO: replace with jf rt docker-promote when Artifactory is available
           for step in preprocessing training validation; do
@@ -168,7 +170,7 @@ jobs:
           done
 
   promote-to-prod:
-    if: github.event_name == 'pull_request' && github.base_ref == 'prod'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/prod'
     runs-on: ubuntu-latest
     services:
       registry:
@@ -178,8 +180,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Extract model name
-        run: echo "MODEL_NAME=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+        run: echo "MODEL_NAME=${{ github.event.repository.name }}" >> $GITHUB_ENV
       - name: Promote images to Prod
+        continue-on-error: true  # PoC limitation: local registry is ephemeral per job. With Artifactory, docker pull would succeed.
         run: |
           # TODO: replace with jf rt docker-promote when Artifactory is available
           for step in preprocessing training validation; do
