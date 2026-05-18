@@ -2,7 +2,7 @@
 
 > **Fase:** Discovery / exploración — sin producción, sin endpoints  
 > **Stack:** GitHub Actions · AWS ECR · AWS S3 · SageMaker Studio · Sonarcloud · Fluid Attacks  
-> **Auth AWS:** ⚠️ OIDC propuesto — pendiente confirmación con equipo AWS/company  
+> **Auth AWS:** ⚠️ OIDC propuesto — pendiente confirmación con equipo AWS  
 > **Base:** spec `cicd-magic-github.md` + mejoras recomendadas
 
 ---
@@ -140,9 +140,9 @@ Step 1 · Preprocessing   →  train.csv, val.csv
 
 ---
 
-## Alineación con DevSecOps company
+## Alineación con DevSecOps
 
-| Capacidad | Herramienta company | En este CI/CD | Estado |
+| Capacidad | Herramienta | En este CI/CD | Estado |
 |-----------|-----------------|---------------|:------:|
 | CI/CD | Azure Pipelines | GitHub Actions | ✅ aprobado para repos GitHub + AWS |
 | Calidad | Sonarcloud | `SonarSource/sonarqube-scan-action@v7` | ✅ licencia a confirmar — gratis para OSS |
@@ -161,7 +161,7 @@ Step 1 · Preprocessing   →  train.csv, val.csv
 | Cache Docker en matrix | No mencionado | Tag único por step (`buildcache-${{ matrix.step }}`) | Sin esto hay race condition — el último job sobreescribe el cache de los demás. |
 | Paths filter | No mencionado | No necesario | `paths` en GHA no acepta variables. La convención de branch-por-modelo ya filtra. |
 | Auth AWS | No mencionado | OIDC propuesto | Paso 0 del CI/CD — sin auth no se puede tocar AWS. |
-| Gates de seguridad | No mencionados | Job 1: Sonarcloud + Fluid Attacks + Semgrep/Bandit | Alineación DevSecOps company. |
+| Gates de seguridad | No mencionados | Job 1: Sonarcloud + Fluid Attacks + Semgrep/Bandit | Alineación DevSecOps. |
 | Deploy SageMaker | "Desplegar pipeline" | `pipeline.upsert(role_arn, tags=[...])` | Idempotente — crea si no existe, actualiza si ya existe. |
 | Paralelismo | No mencionado | Job 2 (build) ‖ Job 3 (upload) | Ambos son independientes — no tiene sentido secuenciarlos. |
 | `ecr:CreateRepository` | "si no existe" | `try/except RepositoryAlreadyExistsException` | La API **no** es idempotente — lanza excepción si el repo ya existe. |
