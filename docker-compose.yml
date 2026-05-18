@@ -15,3 +15,15 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+
+  registry:
+    image: registry:2
+    container_name: registry
+    ports:
+      - "5001:5000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/v2/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
