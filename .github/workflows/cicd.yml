@@ -16,7 +16,7 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -30,7 +30,7 @@ jobs:
     needs: quality
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Extract model name from branch
         run: echo "MODEL_NAME=${GITHUB_REF_NAME}" >> $GITHUB_ENV
       - name: Build preprocessing image
@@ -49,7 +49,7 @@ jobs:
         ports:
           - 4566:4566
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Extract model name from branch
         run: echo "MODEL_NAME=${GITHUB_REF_NAME}" >> $GITHUB_ENV
       - name: Set up Python
@@ -79,7 +79,7 @@ jobs:
         ports:
           - 4566:4566
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Extract model name from branch
         run: echo "MODEL_NAME=${GITHUB_REF_NAME}" >> $GITHUB_ENV
       - name: Set up Python
@@ -117,7 +117,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Dependency Review
         uses: actions/dependency-review-action@v5
         with:
@@ -136,7 +136,7 @@ jobs:
       registry_url: localhost:5001
       image_tag: sha-${{ github.sha }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Extract model name from branch
         run: echo "MODEL_NAME=${GITHUB_REF_NAME}" >> $GITHUB_ENV
       - name: Tag and push images to registry
@@ -155,7 +155,7 @@ jobs:
         ports:
           - 5001:5000
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Extract model name
         run: echo "MODEL_NAME=${GITHUB_REF_NAME}" >> $GITHUB_ENV
       - name: Promote images to QA
@@ -176,7 +176,7 @@ jobs:
         ports:
           - 5001:5000
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Extract model name
         run: echo "MODEL_NAME=${GITHUB_REF_NAME}" >> $GITHUB_ENV
       - name: Promote images to Prod
