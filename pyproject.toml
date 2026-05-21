@@ -13,6 +13,6 @@ quote-style = "double"
 name = "sagemaker-cicd-poc"
 version = "0.1.0"
 dependencies = [
-    "sagemaker>=2.215.0",
+    "sagemaker>=3.12.0",
     "boto3>=1.34.0",
 ]
